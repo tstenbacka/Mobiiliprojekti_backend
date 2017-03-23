@@ -1,7 +1,13 @@
 from flask import Flask
 from flask import jsonify
 import random
+import MySQLdb
+
 app = Flask(__name__)
+
+# add here the actual DB info
+# db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
+db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
 
 @app.route('/')
 def index():
@@ -51,6 +57,31 @@ def food(id):
 
 @app.route('/drinks')
 def drinks():
+        cursor = db.cursor()
+
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM DRINK_RECIPES""")
+
+        # commit your changes, apparently not needed?
+        #db.commit()
+
+        # get the number of rows in the resultset
+        #  numrows = int(cursor.rowcount)
+        rows = cursor.fetchall()
+        rowarray_list = []
+
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'IMG_URL' : row[1] ,
+                'drink_name' : row[2] ,
+                'description' : row[3]              
+                }
+            rowarray_list.append(t)
+        return jsonify(rowarray_list)
+        db.close()
+"""
         drinks = [
             {
                 'id' : 1 ,
@@ -66,7 +97,7 @@ def drinks():
             }
         ]
         return jsonify(drinks)
-
+"""
 @app.route('/drinks/<id>')
 def drink(id):
         return jsonify(
