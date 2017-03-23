@@ -1,6 +1,5 @@
 from flask import Flask
 from flask import jsonify
-import random
 import MySQLdb
 
 app = Flask(__name__)
@@ -55,14 +54,14 @@ def food(id):
         description = "hernari"
         )
 
-@app.route('/drinks')
+@app.route('/drinks', methods=['GET', 'POST'])
 def drinks():
         cursor = db.cursor()
 
         # execute SQL select statement
         cursor.execute("""SELECT * FROM DRINK_RECIPES""")
 
-        # commit your changes, apparently not needed?
+        # commit your changes, apparently needed
         db.commit()
 
         # get the number of rows in the resultset
@@ -100,12 +99,34 @@ def drinks():
 """
 @app.route('/drinks/<id>')
 def drink(id):
+        cursor = db.cursor()
+
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM DRINK_RECIPES WHERE ID_drink = %s""" %id)
+
+        # commit your changes, apparently needed
+        db.commit()
+
+        rows = cursor.fetchall()
+
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'IMG_URL' : row[3] ,
+                'drink_name' : row[1] ,
+                'description' : row[2]              
+                }
+        return jsonify(t)
+        db.close()
+
+"""
         return jsonify(
         id = "%s" %id ,
         IMG_URL = "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933" ,
         drink_name = "santtu" ,
         description = "Suomen yliarvostetuin olut"
         )
-
+"""
 if __name__ == "__main__":
     app.run()
