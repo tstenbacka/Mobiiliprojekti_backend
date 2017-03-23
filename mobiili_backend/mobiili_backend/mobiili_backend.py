@@ -63,7 +63,7 @@ def drinks():
         cursor.execute("""SELECT * FROM DRINK_RECIPES""")
 
         # commit your changes, apparently not needed?
-        #db.commit()
+        db.commit()
 
         # get the number of rows in the resultset
         #  numrows = int(cursor.rowcount)
@@ -74,9 +74,9 @@ def drinks():
             t = (row[0], row[1], row[2], row[3])
             t = {
                 'id' : row[0] ,
-                'IMG_URL' : row[1] ,
-                'drink_name' : row[2] ,
-                'description' : row[3]              
+                'IMG_URL' : row[3] ,
+                'drink_name' : row[1] ,
+                'description' : row[2]              
                 }
             rowarray_list.append(t)
         return jsonify(rowarray_list)
