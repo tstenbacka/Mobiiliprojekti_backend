@@ -28,31 +28,53 @@ def signup():
 
 @app.route('/foods', methods=['GET', 'POST'])
 def foods():
-        foods = [
-            {
-                'id' : 1 ,
-                'IMG_URL' : "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933",
-                'food_name' : "hernari" ,
-                'description' : "hernari"
-             },
-             {
-                'id' : 2 ,
-                'IMG_URL' : "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933",
-                'food_name' : "gorilla" ,
-                'description' : "gorilla lihabullia"
-             }
-        ]
-        
-        return jsonify(foods)
+        cursor = db.cursor()
+
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+
+        # commit your changes, apparently needed
+        db.commit()
+
+        # get the number of rows in the resultset
+        #  numrows = int(cursor.rowcount)
+        rows = cursor.fetchall()
+        rowarray_list = []
+
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'IMG_URL' : row[3] ,
+                'food_name' : row[1] ,
+                'description' : row[2]              
+                }
+            rowarray_list.append(t)
+        return jsonify(rowarray_list)
+        db.close()
 
 @app.route('/foods/<id>')
 def food(id):
-        return jsonify(
-        id = "%s" %id ,
-        IMG_URL = "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933" ,
-        food_name = "hernari" ,
-        description = "hernari"
-        )
+        cursor = db.cursor()
+
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM FOOD_RECIPES WHERE ID_food = %s""" %id)
+
+        # commit your changes, apparently needed
+        db.commit()
+
+        rows = cursor.fetchall()
+
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'IMG_URL' : row[3] ,
+                'food_name' : row[1] ,
+                'description' : row[2]              
+                }
+        return jsonify(t)
+        db.close()
 
 @app.route('/drinks', methods=['GET', 'POST'])
 def drinks():
@@ -80,23 +102,7 @@ def drinks():
             rowarray_list.append(t)
         return jsonify(rowarray_list)
         db.close()
-"""
-        drinks = [
-            {
-                'id' : 1 ,
-                'IMG_URL' : "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933" ,
-                'drink_name' : "santtu" ,
-                'description' : "Suomen yliarvostetuin olut"
-            } ,
-            {
-                'id' : 2 ,
-                'IMG_URL' : "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933" ,
-                'drink_name' : "Koff" ,
-                'description' : "Jumalten juoma"              
-            }
-        ]
-        return jsonify(drinks)
-"""
+
 @app.route('/drinks/<id>')
 def drink(id):
         cursor = db.cursor()
@@ -120,13 +126,5 @@ def drink(id):
         return jsonify(t)
         db.close()
 
-"""
-        return jsonify(
-        id = "%s" %id ,
-        IMG_URL = "http://vignette3.wikia.nocookie.net/meme/images/c/c7/Fd665178b5.jpg/revision/latest?cb=20160524214933" ,
-        drink_name = "santtu" ,
-        description = "Suomen yliarvostetuin olut"
-        )
-"""
 if __name__ == "__main__":
     app.run()
