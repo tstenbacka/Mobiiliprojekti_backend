@@ -12,16 +12,32 @@ db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
 def index():
         return "index"
 
+# password is NOT returned in the user JSON object
 @app.route('/users/<id>')
 def users(id):
-        return jsonify(
-        id = "%s" %id ,
-        user_name = "test" ,
-        first_name = "test" ,
-        last_name = "test" ,
-        email = "test@test.lol"
-        )
+        cursor = db.cursor()
 
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM User WHERE ID_user = %s""" %id)
+
+        # commit your changes, apparently needed
+        db.commit()
+
+        rows = cursor.fetchall()
+
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'user_name' : row[3] ,
+                'first_name' : row[1] ,
+                'last_name' : row[2] ,
+                'email' : row[4]            
+                }
+        return jsonify(t)
+        # db close seems to break stuff (if we close the connection we should restart it so mayby we won't close it...) 
+        # perhaps the connection should still be closed at some point?
+        # db.close()
 @app.route('/users', methods=['POST'])
 def signup():
         return request.json
@@ -51,7 +67,7 @@ def foods():
                 }
             rowarray_list.append(t)
         return jsonify(rowarray_list)
-        db.close()
+        #db.close()
 
 @app.route('/foods/<id>')
 def food(id):
@@ -74,7 +90,7 @@ def food(id):
                 'description' : row[2]              
                 }
         return jsonify(t)
-        db.close()
+        #db.close()
 
 @app.route('/drinks', methods=['GET', 'POST'])
 def drinks():
@@ -101,7 +117,7 @@ def drinks():
                 }
             rowarray_list.append(t)
         return jsonify(rowarray_list)
-        db.close()
+       # db.close()
 
 @app.route('/drinks/<id>')
 def drink(id):
@@ -124,7 +140,7 @@ def drink(id):
                 'description' : row[2]              
                 }
         return jsonify(t)
-        db.close()
+       # db.close()
 
 if __name__ == "__main__":
     app.run()
