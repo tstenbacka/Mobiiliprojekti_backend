@@ -1,7 +1,8 @@
 from flask import Flask
 from flask import jsonify
 import MySQLdb
-import requests
+import json
+from flask import request
 
 app = Flask(__name__)
 
@@ -41,35 +42,29 @@ def users(id):
         # db.close()
 @app.route('/users', methods=['POST'])
 def signup():
-		cursor = db.cursor()
-		data = request.json
-        firstname = request.json['Firstname']
-        lastname = request.json['Lastname']
-        username = request.json['Username']
-        email = request.json['Email']
+        cursor = db.cursor()
+        data = request.json
+        firstname = request.json['Firstname'],
+       	lastname = request.json['Lastname'],
+        username = request.json['Username'],
+        email = request.json['Email'],
         password = request.json['Password']
-        response.content_type = 'application/json'
-        if not data:
-        	abort(400, 'No data received')
+    
+        sql = ("INSERT INTO User (Firstname, Lastname, Username, Email, Password) VALUES (%s,%s,%s,%s,%s) ")
 
-
-		sql = "INSERT INTO User (Firstname, Lastname, Username, Email, Password ) VALUES ('&s','&s'&s') "
-	    try:
+        data_tiedot = (firstname,lastname,username,email,password)        
+ 
+	try:
 	    # Execute dml and commit changes
-	        cursor.execute(sql,data)
-	        db.commit()
-	        cursor.close()        
-	    except:
+		cursor.execute(sql,data_tiedot)
+		db.commit()    
+	except:
 	    # Rollback changes
-	        db.rollback()
-	    return dumps(("OK"),default=json_util.default)			
-        return request.json
-
-def login():        
-
+		db.rollback()
+        return app.response_class(content_type='application/json') 
 @app.route('/foods', methods=['GET', 'POST'])
 def foods():
-        cursor = db.cursor()
+	cursor = db.cursor()
 
         # execute SQL select statement
         cursor.execute("""SELECT * FROM FOOD_RECIPES""")
