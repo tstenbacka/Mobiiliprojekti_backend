@@ -61,7 +61,24 @@ def signup():
 	except:
 	    # Rollback changes
 		db.rollback()
-        return app.response_class(content_type='application/json') 
+        return app.response_class(content_type='application/json')
+@app.route('/login', methods=['POST'])
+    cursor = db.cursor()
+    data = request.json
+    username_form  = request.form['username']
+    password_form  = request.form['password']
+    cur.execute("SELECT COUNT(1) FROM users WHERE name = %s;", [username_form]) # CHECKS IF USERNAME EXSIST
+    if cur.fetchone()[0]:
+        cur.execute("SELECT pass FROM users WHERE name = %s;", [username_form]) # FETCH THE HASHED PASSWORD
+        for row in cur.fetchall():
+            if md5(password_form).hexdigest() == row[0]:
+                session['username'] = request.form['username']
+            else:
+                error = "Invalid Credential"
+    else:
+            error = "Invalid Credential"
+return app.response_class(content_type='application/json')
+ 
 @app.route('/foods', methods=['GET', 'POST'])
 def foods():
 	cursor = db.cursor()
