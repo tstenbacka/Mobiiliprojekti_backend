@@ -3,7 +3,7 @@ from flask import jsonify
 import MySQLdb
 import json
 from flask import request
-
+from hashlib import md5
 app = Flask(__name__)
 
 # add here the actual DB info
@@ -63,21 +63,24 @@ def signup():
 		db.rollback()
         return app.response_class(content_type='application/json')
 @app.route('/login', methods=['POST'])
+def login(): 
     cursor = db.cursor()
     data = request.json
-    username_form  = request.form['username']
-    password_form  = request.form['password']
-    cur.execute("SELECT COUNT(1) FROM users WHERE name = %s;", [username_form]) # CHECKS IF USERNAME EXSIST
-    if cur.fetchone()[0]:
-        cur.execute("SELECT pass FROM users WHERE name = %s;", [username_form]) # FETCH THE HASHED PASSWORD
-        for row in cur.fetchall():
+    username_form  = request.json['Username']
+    password_form  = request.json['Password']
+    cursor.execute("SELECT COUNT(1) FROM User WHERE Username = %s;", [username_form]) # CHECKS IF USERNAME EXSIST
+    if cursor.fetchone()[0]:
+        cursor.execute("SELECT Password FROM User WHERE Username = %s;", [username_form]) # FETCH THE HASHED PASSWORD
+        for row in cursor.fetchall():
             if md5(password_form).hexdigest() == row[0]:
-                session['username'] = request.form['username']
+                session['Username'] = request.form['Username']
+                print "OK"
+                return redirect(url_for('/'))
             else:
-                error = "Invalid Credential"
+                print "Invalid Credential"
     else:
-            error = "Invalid Credential"
-return app.response_class(content_type='application/json')
+            print "Invalid Credential"
+    return app.response_class(content_type='application/json')
  
 @app.route('/foods', methods=['GET', 'POST'])
 def foods():
