@@ -47,30 +47,55 @@ def signup():
 
 @app.route('/foods', methods=['GET', 'POST'])
 def foods():
-        cursor = db.cursor()
+        if request.method == 'POST':
+            if not request.json:
+                abort(400)
 
-        # execute SQL select statement
-        cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+            cursor = db.cursor()
+            IMG_URL = db.escape_string(request.json["IMG_URL"])
+            description = request.json['description']
+            food_name = request.json['food_name']
+    
+            sql = ("INSERT INTO FOOD_RECIPES (food_name, Description, IMG_URL) VALUES (%s,%s,%s) ")
 
-        # commit your changes, apparently needed
-        db.commit()
+            dataToDB = (food_name,description,IMG_URL)        
 
-        # get the number of rows in the resultset
-        #  numrows = int(cursor.rowcount)
-        rows = cursor.fetchall()
-        rowarray_list = []
+            try:
+	            # Execute dml and commit changes
+                cursor.execute(sql,dataToDB)
+                db.commit()    
+            except:
+	            # Rollback changes
+                db.rollback()
+                abort(500)
+                
+            return jsonify(request.json), 201
 
-        for row in rows:
-            t = (row[0], row[1], row[2], row[3])
-            t = {
-                'id' : row[0] ,
-                'IMG_URL' : row[3] ,
-                'food_name' : row[1] ,
-                'description' : row[2]              
-                }
-            rowarray_list.append(t)
-        return jsonify(rowarray_list)
-        #db.close()
+        else:
+            cursor = db.cursor()
+
+            # execute SQL select statement
+            cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+
+            # commit your changes, apparently needed
+            db.commit()
+
+            # get the number of rows in the resultset
+            #  numrows = int(cursor.rowcount)
+            rows = cursor.fetchall()
+            rowarray_list = []
+
+            for row in rows:
+                t = (row[0], row[1], row[2], row[3])
+                t = {
+                    'id' : row[0] ,
+                    'IMG_URL' : row[3] ,
+                    'food_name' : row[1] ,
+                    'description' : row[2]              
+                    }
+                rowarray_list.append(t)
+            return jsonify(rowarray_list)
+            #db.close()
 
 @app.route('/foods/<id>', methods=['GET'])
 def food(id):
@@ -107,11 +132,11 @@ def drinks():
     
             sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
 
-            data_tiedot = (drink_name,description,IMG_URL)        
+            dataToDB = (drink_name,description,IMG_URL)        
 
             try:
 	            # Execute dml and commit changes
-                cursor.execute(sql,data_tiedot)
+                cursor.execute(sql,dataToDB)
                 db.commit()    
             except:
 	            # Rollback changes
