@@ -13,7 +13,8 @@ db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
 
 @app.route('/')
 def index():
-        return "index"
+        abort(418)
+        #return "index"
 
 # password is NOT returned in the user JSON object
 @app.route('/users/<id>')
