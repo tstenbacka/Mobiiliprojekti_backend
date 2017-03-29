@@ -101,7 +101,7 @@ def drinks():
             if not request.json:
                 abort(400)
             cursor = db.cursor()
-            IMG_URL = request.json["IMG_URL"]
+            IMG_URL = db.escape_string(request.json["IMG_URL"])
             description = request.json['description']
             drink_name = request.json['drink_name']
     

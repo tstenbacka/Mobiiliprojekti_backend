@@ -3,23 +3,23 @@ USE Mobiili;
 
 CREATE TABLE User (
 ID_user INT AUTO_INCREMENT PRIMARY KEY,
-Firstname VARCHAR(10) not null,
-Lastname VARCHAR(10) not null,
-Username VARCHAR(10) not null,
-Email VARCHAR(20) not null,
-Password VARCHAR(15) not null);
+Firstname TINYTEXT not null,
+Lastname TINYTEXT not null,
+Username TINYTEXT not null,
+Email TINYTEXT not null,
+Password TINYTEXT not null);
 
 CREATE TABLE FOOD_RECIPES (
 ID_food INT AUTO_INCREMENT PRIMARY KEY,
-IMG_URL VARCHAR(20),
-Description TEXT,
-food_name VARCHAR(15));
+IMG_URL TINYTEXT,
+Description MEDIUMTEXT,
+food_name TINYTEXT);
 
 CREATE TABLE DRINK_RECIPES (
 ID_drink INT AUTO_INCREMENT PRIMARY KEY,
-Drink_name VARCHAR(15),
-Descripsion TEXT,
-IMG_URL VARCHAR(20));
+Drink_name TINYTEXT,
+Descripsion MEDIUMTEXT,
+IMG_URL TINYTEXT);
 
 CREATE TABLE Link (
 ID_user INT,
@@ -36,3 +36,7 @@ FOREIGN KEY (ID_drink)
 	REFERENCES DRINK_RECIPES(ID_drink)
 	ON DELETE RESTRICT ON UPDATE CASCADE);
 
+
+INSERT INTO DRINK_RECIPES VALUES (NULL, "Koff", "1. Avaa pullo 
+2. juo
+3. profit", 'http://www.koff.fi/assets/images/products/Koff-3.png');
