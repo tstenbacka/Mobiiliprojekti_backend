@@ -10,6 +10,20 @@ app = Flask(__name__)
 # db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
 db = MySQLdb.connect("127.0.0.1", "root", "mobiili", "Mobiili")
 
+def require_api_token(func):
+    @wraps(func)
+    def check_token(*args, **kwargs):
+        # Check to see if it's in their session
+        if 'api_session_token' not in session:
+            # If it isn't return our access denied message (you can also return a redirect or render_template)
+            return Response("Access denied")
+
+        # Otherwise just send them where they wanted to go
+        return func(*args, **kwargs)
+
+    return check_token
+
+
 @app.route('/')
 def index():
         return "index"
@@ -74,8 +88,12 @@ def login():
         for row in cursor.fetchall():
             if md5(password_form).hexdigest() == row[0]:
                 session['Username'] = request.form['Username']
-                print "OK"
-                return redirect(url_for('/'))
+                token = response['user']['authentication_token']
+                from flask import session
+
+                # Put it in the session
+                session['api_session_token'] = token
+                
             else:
                 print "Invalid Credential"
     else:
@@ -83,6 +101,7 @@ def login():
     return app.response_class(content_type='application/json')
  
 @app.route('/foods', methods=['GET', 'POST'])
+@require_api_token
 def foods():
 	cursor = db.cursor()
 
@@ -133,6 +152,7 @@ def food(id):
         #db.close()
 
 @app.route('/drinks', methods=['GET', 'POST'])
+@require_api_token
 def drinks():
         cursor = db.cursor()
 
