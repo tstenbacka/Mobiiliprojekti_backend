@@ -4,6 +4,10 @@ import MySQLdb
 import json
 from flask import request
 from hashlib import md5
+from functools import wraps
+from flask import session
+from flask import make_response
+
 app = Flask(__name__)
 
 # add here the actual DB info
@@ -13,10 +17,11 @@ db = MySQLdb.connect("127.0.0.1", "root", "mobiili", "Mobiili")
 def require_api_token(func):
     @wraps(func)
     def check_token(*args, **kwargs):
+        resp = make_response ("Access Denied")
         # Check to see if it's in their session
         if 'api_session_token' not in session:
             # If it isn't return our access denied message (you can also return a redirect or render_template)
-            return Response("Access denied")
+            return resp
 
         # Otherwise just send them where they wanted to go
         return func(*args, **kwargs)
@@ -63,7 +68,7 @@ def signup():
         username = request.json['Username'],
         email = request.json['Email'],
         password = request.json['Password']
-    
+        signResp = make_response ("sign up ok")
         sql = ("INSERT INTO User (Firstname, Lastname, Username, Email, Password) VALUES (%s,%s,%s,%s,%s) ")
 
         data_tiedot = (firstname,lastname,username,email,password)        
@@ -71,7 +76,8 @@ def signup():
 	try:
 	    # Execute dml and commit changes
 		cursor.execute(sql,data_tiedot)
-		db.commit()    
+		db.commit()
+                return signResp
 	except:
 	    # Rollback changes
 		db.rollback()
@@ -81,23 +87,28 @@ def login():
     cursor = db.cursor()
     data = request.json
     username_form  = request.json['Username']
-    password_form  = request.json['Password']
-    cursor.execute("SELECT COUNT(1) FROM User WHERE Username = %s;", [username_form]) # CHECKS IF USERNAME EXSIST
-    if cursor.fetchone()[0]:
-        cursor.execute("SELECT Password FROM User WHERE Username = %s;", [username_form]) # FETCH THE HASHED PASSWORD
-        for row in cursor.fetchall():
-            if md5(password_form).hexdigest() == row[0]:
-                session['Username'] = request.form['Username']
-                token = response['user']['authentication_token']
-                from flask import session
+    password_form  = request.json['Password']   
+    okresp = make_response ("login ok")
+    invalidUser = make_response("Invalid username")
+    invalidPassword = make_response("Password")
+   
+ 
+    userQ = cursor.execute( """SELECT Username FROM User WHERE Username = '%s'""".format(username_form))
+    passQ = cursor.execute("""SELECT Password FROM User WHERE Username = '%s'""".format(username_form))
+ 
+    userss = str(userQ)    
 
-                # Put it in the session
-                session['api_session_token'] = token
-                
-            else:
-                print "Invalid Credential"
+    loginerror = make_response(userss)  
+  
+    if username_form == userQ and password_form == passQ:
+        session['Username'] = request.form['Username']
+        token = response['UseUsernamee']['authentication_token']
+
+        # Put it in the session
+        session['api_session_token'] = token
+        return okresp
     else:
-            print "Invalid Credential"
+        return loginerror
     return app.response_class(content_type='application/json')
  
 @app.route('/foods', methods=['GET', 'POST'])
