@@ -1,6 +1,9 @@
 from flask import Flask
 from flask import jsonify
+from flask import request
+from flask import abort
 import MySQLdb
+#import json
 
 app = Flask(__name__)
 
@@ -69,7 +72,7 @@ def foods():
         return jsonify(rowarray_list)
         #db.close()
 
-@app.route('/foods/<id>')
+@app.route('/foods/<id>', methods=['GET'])
 def food(id):
         cursor = db.cursor()
 
@@ -94,32 +97,57 @@ def food(id):
 
 @app.route('/drinks', methods=['GET', 'POST'])
 def drinks():
-        cursor = db.cursor()
+        if request.method == 'POST':
+            if not request.json:
+                abort(400)
+            cursor = db.cursor()
+            IMG_URL = request.json["IMG_URL"]
+            description = request.json['description']
+            drink_name = request.json['drink_name']
+    
+            sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
 
-        # execute SQL select statement
-        cursor.execute("""SELECT * FROM DRINK_RECIPES""")
+            data_tiedot = (drink_name,description,IMG_URL)        
 
-        # commit your changes, apparently needed
-        db.commit()
+            try:
+	            # Execute dml and commit changes
+                cursor.execute(sql,data_tiedot)
+                db.commit()    
+            except:
+	            # Rollback changes
+                db.rollback()
+                abort(500)
+                
+            return jsonify(request.json), 201
 
-        # get the number of rows in the resultset
-        #  numrows = int(cursor.rowcount)
-        rows = cursor.fetchall()
-        rowarray_list = []
 
-        for row in rows:
-            t = (row[0], row[1], row[2], row[3])
-            t = {
-                'id' : row[0] ,
-                'IMG_URL' : row[3] ,
-                'drink_name' : row[1] ,
-                'description' : row[2]              
-                }
-            rowarray_list.append(t)
-        return jsonify(rowarray_list)
-       # db.close()
+        else:
+            cursor = db.cursor()
 
-@app.route('/drinks/<id>')
+            # execute SQL select statement
+            cursor.execute("""SELECT * FROM DRINK_RECIPES""")
+
+            # commit your changes, apparently needed
+            db.commit()
+
+            # get the number of rows in the resultset
+            #  numrows = int(cursor.rowcount)
+            rows = cursor.fetchall()
+            rowarray_list = []
+
+            for row in rows:
+                t = (row[0], row[1], row[2], row[3])
+                t = {
+                    'id' : row[0] ,
+                    'IMG_URL' : row[3] ,
+                    'drink_name' : row[1] ,
+                    'description' : row[2]              
+                    }
+                rowarray_list.append(t)
+            return jsonify(rowarray_list)
+           # db.close()
+
+@app.route('/drinks/<id>', methods=['GET'])
 def drink(id):
         cursor = db.cursor()
 
