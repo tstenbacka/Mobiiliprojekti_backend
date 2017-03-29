@@ -1,14 +1,16 @@
 from flask import Flask
 from flask import jsonify
-import MySQLdb
 import json
+import MySQLdb
 from flask import request
 from hashlib import md5
 from functools import wraps
 from flask import session
 from flask import make_response
 
+
 app = Flask(__name__)
+app.secret_key = "super secret key"
 
 # add here the actual DB info
 # db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
@@ -90,21 +92,29 @@ def login():
     password_form  = request.json['Password']   
     okresp = make_response ("login ok")
     invalidUser = make_response("Invalid username")
-    invalidPassword = make_response("Password")
-   
- 
-    userQ = cursor.execute( """SELECT Username FROM User WHERE Username = '%s'""".format(username_form))
-    passQ = cursor.execute("""SELECT Password FROM User WHERE Username = '%s'""".format(username_form))
- 
-    userss = str(userQ)    
+    invalidPassword = make_response("Invalid Password")
+    loginerror = make_response("invalid username or passord")
+    jsonuser = str(username_form)
+    jsonpass = str(password_form)
 
-    loginerror = make_response(userss)  
+     
+    try:
+        cursor.execute( """SELECT Username FROM User WHERE Username = %s""", (jsonuser,))
+        userss = str(cursor.fetchone()[0])
+    except:
+        return invalidUser
+    
+    try:
+        cursor.execute("""SELECT Password FROM User WHERE Username = %s""", (jsonpass,)) 
+        pass2 = str(cursor.fetchone()[0])     
+    except:
+        return invalidPassword
+
   
-    if username_form == userQ and password_form == passQ:
-        session['Username'] = request.form['Username']
-        token = response['UseUsernamee']['authentication_token']
+    if jsonuser == userss and jsonpass == pass2:
+        token = userss
 
-        # Put it in the session
+        #Put it in the session
         session['api_session_token'] = token
         return okresp
     else:
