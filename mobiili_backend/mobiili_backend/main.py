@@ -124,11 +124,11 @@ def login():
     return app.response_class(content_type='application/json')
 
 @app.route('/foods', methods=['GET', 'POST'])
+@require_api_token
 def foods():
-  @require_api_token
-        if request.method == 'POST':
-            if not request.json:
-                abort(400)
+    if request.method == 'POST':
+        if not request.json:
+            abort(400)
 
             cursor = db.cursor()
             IMG_URL = db.escape_string(request.json["IMG_URL"])
@@ -150,30 +150,29 @@ def foods():
                 
             return jsonify(request.json), 201
 
-        else:
-            cursor = db.cursor()
+    else:
+        cursor = db.cursor()
 
-            # execute SQL select statement
-            cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+        # commit your changes, apparently needed
+        db.commit()
 
-            # commit your changes, apparently needed
-            db.commit()
+        # get the number of rows in the resultset
+        #  numrows = int(cursor.rowcount)
+        rows = cursor.fetchall()
+        rowarray_list = []
 
-            # get the number of rows in the resultset
-            #  numrows = int(cursor.rowcount)
-            rows = cursor.fetchall()
-            rowarray_list = []
-
-            for row in rows:
-                t = (row[0], row[1], row[2], row[3])
-                t = {
-                    'id' : row[0] ,
-                    'IMG_URL' : row[3] ,
-                    'food_name' : row[1] ,
-                    'description' : row[2]              
-                    }
-                rowarray_list.append(t)
-            return jsonify(rowarray_list)
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'IMG_URL' : row[3] ,
+                'food_name' : row[1] ,
+                'description' : row[2]              
+                }
+            rowarray_list.append(t)
+    return jsonify(rowarray_list)
             #db.close()
  
 @app.route('/foods/<id>', methods=['GET'])
@@ -200,60 +199,59 @@ def food(id):
         #db.close()
 
 @app.route('/drinks', methods=['GET', 'POST'])
+@require_api_token
 def drinks():
-  @require_api_token
-        if request.method == 'POST':
-            if not request.json:
-                abort(400)
-            cursor = db.cursor()
-            IMG_URL = db.escape_string(request.json["IMG_URL"])
-            description = request.json['description']
-            drink_name = request.json['drink_name']
+    if request.method == 'POST':
+        if not request.json:
+             abort(400)
+        cursor = db.cursor()
+        IMG_URL = db.escape_string(request.json["IMG_URL"])
+        description = request.json['description']
+        drink_name = request.json['drink_name']
     
-            sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
+        sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
 
-            dataToDB = (drink_name,description,IMG_URL)        
+        dataToDB = (drink_name,description,IMG_URL)        
 
-            try:
+        try:
 	            # Execute dml and commit changes
-                cursor.execute(sql,dataToDB)
-                db.commit()    
-            except:
-	            # Rollback changes
-                db.rollback()
-                abort(500)
+            cursor.execute(sql,dataToDB)
+            db.commit()    
+        except:
+                # Rollback changes
+            db.rollback()
+            abort(500)
                 
-            return jsonify(request.json), 201
+        return jsonify(request.json), 201
 
 
-        else:
-            cursor = db.cursor()
+    else:
+        cursor = db.cursor()
 
-            # execute SQL select statement
-            cursor.execute("""SELECT * FROM DRINK_RECIPES""")
+         # execute SQL select statement
+        cursor.execute("""SELECT * FROM DRINK_RECIPES""")
 
-            # commit your changes, apparently needed
-            db.commit()
+           # commit your changes, apparently needed
+        db.commit()
 
             # get the number of rows in the resultset
             #  numrows = int(cursor.rowcount)
-            rows = cursor.fetchall()
-            rowarray_list = []
+        rows = cursor.fetchall()
+        rowarray_list = []
 
-            for row in rows:
-                t = (row[0], row[1], row[2], row[3])
-                t = {
-                    'id' : row[0] ,
-                    'IMG_URL' : row[3] ,
-                    'drink_name' : row[1] ,
-                    'description' : row[2]              
-                    }
-                rowarray_list.append(t)
-            return jsonify(rowarray_list)
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+            'id' : row[0] ,
+            'IMG_URL' : row[3] ,
+            'drink_name' : row[1] ,
+            'description' : row[2]              
+                }
+            rowarray_list.append(t)
+        return jsonify(rowarray_list)
            # db.close()
 
 @app.route('/drinks/<id>', methods=['GET'])
-
 def drink(id):
         cursor = db.cursor()
 
