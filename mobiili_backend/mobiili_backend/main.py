@@ -8,10 +8,17 @@ from hashlib import md5
 from functools import wraps
 from flask import session
 from flask import make_response
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
 
+IMAGE_FOODS = '/home/ubuntu/images/food/'
+IMAGE_DRINKS = '/home/ubuntu/images/drink/'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
 app.secret_key = "super secret key"
+app.config['IMAGE_FOODS'] = IMAGE_FOODS
+app.config['IMAGE_DRINKS'] = IMAGE_DRINKS
 
 # add here the actual DB info
 # db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
@@ -31,7 +38,9 @@ def require_api_token(func):
 
     return check_token
 
-
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 @app.route('/')
 def index():
         abort(418)
@@ -63,6 +72,8 @@ def users(id):
         # db close seems to break stuff (if we close the connection we should restart it so mayby we won't close it...) 
         # perhaps the connection should still be closed at some point?
         # db.close()
+
+
 @app.route('/users', methods=['POST'])
 def signup():
         cursor = db.cursor()
@@ -123,15 +134,45 @@ def login():
         return loginerror
     return app.response_class(content_type='application/json')
 
+
+@app.route('/food_img/<filename>')
+def show_image_food(filename):
+    return send_from_directory(app.config['IMAGE_FOODS'],
+                               filename)
+@app.route('/drink_img/<filename>')
+def show_image_drink(filename):
+    return send_from_directory(app.config['IMAGE_DRINKS'],
+                               filename)
+
+
 @app.route('/foods', methods=['GET', 'POST'])
+#@require_api_token
 def foods():
-  @require_api_token
-        if request.method == 'POST':
-            if not request.json:
-                abort(400)
+    if request.method == 'POST':
+        if not request.json:
+            abort(400)
+
+            url = 'http://ec2-35-167-155-40.us-west-2.compute.amazonaws.com/food_img/'
+
+
+            if 'file' not in request.files:
+                flash('No file part')
+                return redirect(request.url)
+            file = request.files['file']
+            # if user does not select file, browser also
+            # submit a empty part without filename
+            if file.filename == '':
+                flash('No selected file')
+            return redirect(request.url)
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['IMAGES_FOODS'], filename))
+                return redirect(url_for('uploaded_file',
+                                    filename=filename))
+
 
             cursor = db.cursor()
-            IMG_URL = db.escape_string(request.json["IMG_URL"])
+            IMG_URL = url + filename
             description = request.json['description']
             food_name = request.json['food_name']
     
@@ -150,32 +191,32 @@ def foods():
                 
             return jsonify(request.json), 201
 
-        else:
-            cursor = db.cursor()
+    else:
+        cursor = db.cursor()
 
-            # execute SQL select statement
-            cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+        # execute SQL select statement
+        cursor.execute("""SELECT * FROM FOOD_RECIPES""")
+        # commit your changes, apparently needed
+        db.commit()
 
-            # commit your changes, apparently needed
-            db.commit()
+        # get the number of rows in the resultset
+        #  numrows = int(cursor.rowcount)
+        rows = cursor.fetchall()
+        rowarray_list = []
 
-            # get the number of rows in the resultset
-            #  numrows = int(cursor.rowcount)
-            rows = cursor.fetchall()
-            rowarray_list = []
-
-            for row in rows:
-                t = (row[0], row[1], row[2], row[3])
-                t = {
-                    'id' : row[0] ,
-                    'IMG_URL' : row[3] ,
-                    'food_name' : row[1] ,
-                    'description' : row[2]              
-                    }
-                rowarray_list.append(t)
-            return jsonify(rowarray_list)
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+                'id' : row[0] ,
+                'IMG_URL' : row[3] ,
+                'food_name' : row[1] ,
+                'description' : row[2]              
+                }
+            rowarray_list.append(t)
+    return jsonify(rowarray_list)
             #db.close()
- 
+
+
 @app.route('/foods/<id>', methods=['GET'])
 def food(id):
         cursor = db.cursor()
@@ -200,60 +241,59 @@ def food(id):
         #db.close()
 
 @app.route('/drinks', methods=['GET', 'POST'])
+#@require_api_token
 def drinks():
-  @require_api_token
-        if request.method == 'POST':
-            if not request.json:
-                abort(400)
-            cursor = db.cursor()
-            IMG_URL = db.escape_string(request.json["IMG_URL"])
-            description = request.json['description']
-            drink_name = request.json['drink_name']
+    if request.method == 'POST':
+        if not request.json:
+             abort(400)
+        cursor = db.cursor()
+        IMG_URL = db.escape_string(request.json["IMG_URL"])
+        description = request.json['description']
+        drink_name = request.json['drink_name']
     
-            sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
+        sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
 
-            dataToDB = (drink_name,description,IMG_URL)        
+        dataToDB = (drink_name,description,IMG_URL)        
 
-            try:
+        try:
 	            # Execute dml and commit changes
-                cursor.execute(sql,dataToDB)
-                db.commit()    
-            except:
-	            # Rollback changes
-                db.rollback()
-                abort(500)
+            cursor.execute(sql,dataToDB)
+            db.commit()    
+        except:
+                # Rollback changes
+            db.rollback()
+            abort(500)
                 
-            return jsonify(request.json), 201
+        return jsonify(request.json), 201
 
 
-        else:
-            cursor = db.cursor()
+    else:
+        cursor = db.cursor()
 
-            # execute SQL select statement
-            cursor.execute("""SELECT * FROM DRINK_RECIPES""")
+         # execute SQL select statement
+        cursor.execute("""SELECT * FROM DRINK_RECIPES""")
 
-            # commit your changes, apparently needed
-            db.commit()
+           # commit your changes, apparently needed
+        db.commit()
 
             # get the number of rows in the resultset
             #  numrows = int(cursor.rowcount)
-            rows = cursor.fetchall()
-            rowarray_list = []
+        rows = cursor.fetchall()
+        rowarray_list = []
 
-            for row in rows:
-                t = (row[0], row[1], row[2], row[3])
-                t = {
-                    'id' : row[0] ,
-                    'IMG_URL' : row[3] ,
-                    'drink_name' : row[1] ,
-                    'description' : row[2]              
-                    }
-                rowarray_list.append(t)
-            return jsonify(rowarray_list)
+        for row in rows:
+            t = (row[0], row[1], row[2], row[3])
+            t = {
+            'id' : row[0] ,
+            'IMG_URL' : row[3] ,
+            'drink_name' : row[1] ,
+            'description' : row[2]              
+                }
+            rowarray_list.append(t)
+        return jsonify(rowarray_list)
            # db.close()
 
 @app.route('/drinks/<id>', methods=['GET'])
-
 def drink(id):
         cursor = db.cursor()
 
