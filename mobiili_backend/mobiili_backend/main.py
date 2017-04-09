@@ -3,13 +3,15 @@ from flask import jsonify
 from flask import abort
 import json
 import MySQLdb
-from flask import request
+from flask import request, redirect
 from hashlib import md5
 from functools import wraps
 from flask import session
 from flask import make_response
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
+import base64
+import uuid
 
 IMAGE_FOODS = '/home/ubuntu/images/food/'
 IMAGE_DRINKS = '/home/ubuntu/images/drink/'
@@ -149,47 +151,37 @@ def show_image_drink(filename):
 #@require_api_token
 def foods():
     if request.method == 'POST':
-        if not request.json:
-            abort(400)
+        
+        url = 'http://ec2-35-167-155-40.us-west-2.compute.amazonaws.com/food_img/'
 
-            url = 'http://ec2-35-167-155-40.us-west-2.compute.amazonaws.com/food_img/'
+        cursor = db.cursor()
+        IMG = request.json['picture']
+        description = request.json['description']
+        food = request.json['food_name']
 
+        imgdata = base64.decodestring(IMG)
+        image = open('/home/ubuntu/images/food/'+food+'.jpeg','wb')
+        image.write(imgdata)
+        image.close()
+          
+        food_name = food+'.jpeg'
+        IMG_URL = url + food_name
+        
+        
+        sql = ("INSERT INTO FOOD_RECIPES (food_name, Description, IMG_URL) VALUES (%s,%s,%s) ")
 
-            if 'file' not in request.files:
-                flash('No file part')
-                return redirect(request.url)
-            file = request.files['file']
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if file.filename == '':
-                flash('No selected file')
-            return redirect(request.url)
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['IMAGES_FOODS'], filename))
-                return redirect(url_for('uploaded_file',
-                                    filename=filename))
+        dataToDB = (IMG_URL,description,food)        
 
-
-            cursor = db.cursor()
-            IMG_URL = url + filename
-            description = request.json['description']
-            food_name = request.json['food_name']
-    
-            sql = ("INSERT INTO FOOD_RECIPES (food_name, Description, IMG_URL) VALUES (%s,%s,%s) ")
-
-            dataToDB = (food_name,description,IMG_URL)        
-
-            try:
+        try:
 	            # Execute dml and commit changes
-                cursor.execute(sql,dataToDB)
-                db.commit()    
-            except:
+            cursor.execute(sql,dataToDB)
+            db.commit()    
+        except:
 	            # Rollback changes
-                db.rollback()
-                abort(500)
+            db.rollback()
+            abort(500)
                 
-            return jsonify(request.json), 201
+        return app.response_class(content_type='application/json')
 
     else:
         cursor = db.cursor()
@@ -244,16 +236,24 @@ def food(id):
 #@require_api_token
 def drinks():
     if request.method == 'POST':
-        if not request.json:
-             abort(400)
+
+        url = 'http://ec2-35-167-155-40.us-west-2.compute.amazonaws.com/drink_img/'        
         cursor = db.cursor()
-        IMG_URL = db.escape_string(request.json["IMG_URL"])
+        IMG = request.json['picture']
         description = request.json['description']
-        drink_name = request.json['drink_name']
+        drink = request.json['drink_name']
+
+        imgdata = base64.decodestring(IMG)
+        image = open('/home/ubuntu/images/drink/'+drink+'.jpeg','wb')
+        image.write(imgdata)
+        image.close()
+    
+        drink_name = drink+'.jpeg'
+        IMG_URL = url + drink_name
     
         sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
 
-        dataToDB = (drink_name,description,IMG_URL)        
+        dataToDB = (drink,description,IMG_URL)        
 
         try:
 	            # Execute dml and commit changes
