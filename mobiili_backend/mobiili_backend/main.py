@@ -1,17 +1,32 @@
+# -*- coding: utf-8 -*-
 from flask import Flask
 from flask import jsonify
 from flask import abort
 import json
 import MySQLdb
-from flask import request
+from flask import request, redirect
 from hashlib import md5
 from functools import wraps
 from flask import session
 from flask import make_response
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
+import base64
+import uuid
+import sys
 
+
+
+
+
+IMAGE_FOODS = '/home/ubuntu/images/food/'
+IMAGE_DRINKS = '/home/ubuntu/images/drink/'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
 app.secret_key = "super secret key"
+app.config['IMAGE_FOODS'] = IMAGE_FOODS
+app.config['IMAGE_DRINKS'] = IMAGE_DRINKS
 
 # add here the actual DB info
 # db = MySQLdb.connect("127.0.0.1", "root", "asd", "Mobiili")
@@ -31,7 +46,9 @@ def require_api_token(func):
 
     return check_token
 
-
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 @app.route('/')
 def index():
         abort(418)
@@ -63,6 +80,8 @@ def users(id):
         # db close seems to break stuff (if we close the connection we should restart it so mayby we won't close it...) 
         # perhaps the connection should still be closed at some point?
         # db.close()
+
+
 @app.route('/users', methods=['POST'])
 def signup():
         cursor = db.cursor()
@@ -107,7 +126,7 @@ def login():
         return invalidUser
     
     try:
-        cursor.execute("""SELECT Password FROM User WHERE Username = %s""", (jsonpass,)) 
+        cursor.execute("""SELECT Password FROM User WHERE Username = %s""", (jsonuser,)) 
         pass2 = str(cursor.fetchone()[0])     
     except:
         return invalidPassword
@@ -123,32 +142,55 @@ def login():
         return loginerror
     return app.response_class(content_type='application/json')
 
+
+@app.route('/food_img/<filename>')
+def show_image_food(filename):
+    return send_from_directory(app.config['IMAGE_FOODS'],
+                               filename)
+@app.route('/drink_img/<filename>')
+def show_image_drink(filename):
+    return send_from_directory(app.config['IMAGE_DRINKS'],
+                               filename)
+
+
 @app.route('/foods', methods=['GET', 'POST'])
-@require_api_token
+#@require_api_token
 def foods():
     if request.method == 'POST':
-        if not request.json:
-            abort(400)
-
-            cursor = db.cursor()
-            IMG_URL = db.escape_string(request.json["IMG_URL"])
-            description = request.json['description']
-            food_name = request.json['food_name']
+       
+         
+        url = 'http://ec2-35-167-155-40.us-west-2.compute.amazonaws.com/food_img/'
+        post_ok = make_response("post ok")
+        cursor = db.cursor()
+        IMG = request.json['picture']
+        description = request.json['description']
+        food = request.json['food_name']
     
-            sql = ("INSERT INTO FOOD_RECIPES (food_name, Description, IMG_URL) VALUES (%s,%s,%s) ")
+        imgdata = base64.decodestring(IMG)
+        image = open('/home/ubuntu/images/food/'+food+'.jpeg','wb')
+        image.write(imgdata)
+        image.close()
+          
+        food_name = food+'.jpeg'
+        food_name.replace(" ", "_")
+        IMG_URL = url + food_name
+        
+        
+        sql = ("INSERT INTO FOOD_RECIPES (food_name, Description, IMG_URL) VALUES (%s,%s,%s) ")
 
-            dataToDB = (food_name,description,IMG_URL)        
+        dataToDB = (food,description,IMG_URL)        
 
-            try:
+        try:
 	            # Execute dml and commit changes
-                cursor.execute(sql,dataToDB)
-                db.commit()    
-            except:
+            cursor.execute(sql,dataToDB)
+            db.commit()
+            return post_ok    
+        except:
 	            # Rollback changes
-                db.rollback()
-                abort(500)
+            db.rollback()
+            abort(500)
                 
-            return jsonify(request.json), 201
+        return app.response_class(content_type='application/json')
 
     else:
         cursor = db.cursor()
@@ -167,14 +209,15 @@ def foods():
             t = (row[0], row[1], row[2], row[3])
             t = {
                 'id' : row[0] ,
-                'IMG_URL' : row[3] ,
-                'food_name' : row[1] ,
+                'IMG_URL' : row[1] ,
+                'food_name' : row[3] ,
                 'description' : row[2]              
                 }
             rowarray_list.append(t)
     return jsonify(rowarray_list)
             #db.close()
- 
+
+
 @app.route('/foods/<id>', methods=['GET'])
 def food(id):
         cursor = db.cursor()
@@ -199,24 +242,33 @@ def food(id):
         #db.close()
 
 @app.route('/drinks', methods=['GET', 'POST'])
-@require_api_token
+#@require_api_token
 def drinks():
     if request.method == 'POST':
-        if not request.json:
-             abort(400)
+        post_ok = make_response("post ok")
+        url = 'http://ec2-35-167-155-40.us-west-2.compute.amazonaws.com/drink_img/'        
         cursor = db.cursor()
-        IMG_URL = db.escape_string(request.json["IMG_URL"])
+        IMG = request.json['picture']
         description = request.json['description']
-        drink_name = request.json['drink_name']
+        drink = request.json['drink_name']
+
+        imgdata = base64.decodestring(IMG)
+        image = open('/home/ubuntu/images/drink/'+drink+'.jpeg','wb')
+        image.write(imgdata)
+        image.close()
+    
+        drink_name = drink+'.jpeg'
+        IMG_URL = url + drink_name
     
         sql = ("INSERT INTO DRINK_RECIPES (Drink_name, Descripsion, IMG_URL) VALUES (%s,%s,%s) ")
 
-        dataToDB = (drink_name,description,IMG_URL)        
+        dataToDB = (drink,description,IMG_URL)        
 
         try:
 	            # Execute dml and commit changes
             cursor.execute(sql,dataToDB)
-            db.commit()    
+            db.commit()
+            return post_ok
         except:
                 # Rollback changes
             db.rollback()
